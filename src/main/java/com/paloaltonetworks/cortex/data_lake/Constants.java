@@ -19,20 +19,13 @@ package com.paloaltonetworks.cortex.data_lake;
 
 import java.util.Map;
 
-//TODO: BASE_FQDN is not final one
-
 /**
- * SDK-wide constants
+ * library-wide constants
  */
 public final class Constants {
-    final static String BASE_FQDN = "dev-cortex-global-01-mtls.paloaltonetworks-app.com";
-    final static String EP_SCHEMA = "/schema/v2/schemas/";
+    final static String USFQDN = "cortex-prd1-api.us.cdl.paloaltonetworks.com";
+    // final static String USFQDN = "api.us.cdl.paloaltonetworks.com";
+    final static String EUFQDN = "api.nl.cdl.paloaltonetworks.com";
     final static String EP_QUERY = "/query/v2/";
-    public final static Map<String, String> APIEPMAP = Map.of("europe", "api.nl.cdl.paloaltonetworks.com", "americas",
-            "api.us.cdl.paloaltonetworks.com");
-    final static String IDP_TOKEN_URL = "https://api.paloaltonetworks.com/api/oauth2/RequestToken";
-    final static String IDP_REVOKE_URL = "https://api.paloaltonetworks.com/api/oauth2/RevokeToken";
-    final static String IDP_AUTH_URL = "https://identity.paloaltonetworks.com/as/authorization.oauth2";
-    final static String DEV_TOKEN_PROVIDER = "https://app.developers.paloaltonetworks.com/request_token";
-    final static String SCOPE_LS_READ = "logging-service:read";
+    public final static Map<String, String> APIEPMAP = Map.of("europe", EUFQDN, "americas", USFQDN);
 }

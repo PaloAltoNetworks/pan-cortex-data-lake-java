@@ -18,7 +18,6 @@
 package com.paloaltonetworks.cortex.data_lake;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
