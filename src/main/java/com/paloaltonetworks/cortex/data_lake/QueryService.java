@@ -431,7 +431,6 @@ public class QueryService {
      *              contained in the jobId response field that is returned when you
      *              create the query job.
      * @param cred  Optional credential tuple to override default one
-     * @return void
      * @throws IllegalArgumentException   In case jobId is null.
      * @throws QueryServiceParseException When the Query Service API response does
      *                                    not conform to the expected interface.
@@ -442,18 +441,10 @@ public class QueryService {
      * @throws URISyntaxException         unsupported usage of this object
      * @throws Http2FetchException        unsupported usage of this object
      */
-    public QueryJobDetail deleteJob(String jobId, CredentialTuple cred)
-            throws QueryServiceParseException, QueryServiceException, IOException, InterruptedException,
-            IllegalArgumentException, Http2FetchException, URISyntaxException {
-        CortexApiResult<JsonStructure> response = client.delete(prepareJobById(jobId), this.sw(cred), (String[]) null);
+    public void deleteJob(String jobId, CredentialTuple cred) throws QueryServiceParseException, QueryServiceException,
+            IOException, InterruptedException, IllegalArgumentException, Http2FetchException, URISyntaxException {
+        client.delete(prepareJobById(jobId), this.sw(cred), (String[]) null);
         logger.finest("deleteJob request for jobId " + jobId);
-        try {
-            return processJobById(response);
-        } catch (QueryServiceParseRuntimeException e) {
-            throw new QueryServiceParseException(e.getMessage());
-        } catch (QueryServiceRuntimeException e) {
-            throw QueryServiceException.fromException(e);
-        }
     }
 
     /**
@@ -471,11 +462,11 @@ public class QueryService {
      * @throws Http2FetchException      unsupported usage of this object
      * @throws IllegalArgumentException In case jobId is null.
      */
-    public CompletableFuture<QueryJobDetail> deleteJobAsync(String jobId, CredentialTuple cred)
+    public CompletableFuture<Void> deleteJobAsync(String jobId, CredentialTuple cred)
             throws IllegalArgumentException, Http2FetchException, URISyntaxException {
         logger.finest("deleteJobAsync request for jobId " + jobId);
-        return client.deleteAsync(prepareJobById(jobId), this.sw(cred), (String[]) null)
-                .thenApply(this::processJobById);
+        return client.deleteAsync(prepareJobById(jobId), this.sw(cred), (String[]) null).thenAccept((item) -> {
+        });
     }
 
     private String prepareGetJobResults(String jobId, Integer maxWait, ResultFormat resultFormat, Integer pageSize,

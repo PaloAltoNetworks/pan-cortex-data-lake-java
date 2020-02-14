@@ -16,6 +16,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
 import javax.json.JsonValue;
 
 import com.paloaltonetworks.cortex.data_lake.Http2FetchException;
@@ -51,7 +52,7 @@ public class QueryServiceTest {
 
     @BeforeClass
     public static void init() {
-        // logger.setLevel(Level.INFO);
+        // Logger.setLevel(Level.INFO);
         // Handler consoleHandler = new ConsoleHandler();
         // consoleHandler.setLevel(Level.FINEST);
         // logger.addHandler(consoleHandler);

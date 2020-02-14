@@ -12,7 +12,7 @@
  * <li>Query Service</li>
  * </ul>
  * 
- * <h2>Overview</h2> The SDK is composed of a HTTP/2 connectivity layer
+ * <h2>Overview</h2> The library is composed of a HTTP/2 connectivity layer
  * implemented by the {@code Http2Fetch} class and by a low-level collection of
  * classes providing access to their corresponding Cortex API's. For instance,
  * the {@code QueryService} class is responsible for providing methods to create

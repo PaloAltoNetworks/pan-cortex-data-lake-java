@@ -36,9 +36,9 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
@@ -72,7 +72,8 @@ public class Http2Fetch {
     private final Credentials defCred;
     private final UrlContext defCredUrlContext;
     private final String defaultEntryPoint;
-    private final Lock locker;
+    private final Lock defLocker;
+    private final Lock cacheLocker;
     private static Logger logger = Logger.getLogger("com.paloaltonetworks.cortex.data_lake");
 
     /**
@@ -110,10 +111,11 @@ public class Http2Fetch {
         client = HttpClient.newBuilder().version(Version.HTTP_2).sslContext(sc).build();
         this.timeout = timeout;
         this.defaultEntryPoint = defaultEntryPoint;
-        urlContextCache = new HashMap<String, UrlContext>();
+        urlContextCache = new ConcurrentHashMap<String, UrlContext>();
         defCredUrlContext = null;
         defCred = null;
-        locker = new ReentrantLock();
+        defLocker = new ReentrantLock();
+        cacheLocker = new ReentrantLock();
     }
 
     /**
@@ -130,13 +132,14 @@ public class Http2Fetch {
             throws NoSuchAlgorithmException, KeyManagementException {
         this.timeout = timeout;
         this.defaultEntryPoint = null;
-        urlContextCache = new HashMap<String, UrlContext>();
+        urlContextCache = new ConcurrentHashMap<String, UrlContext>();
         if (cred != null) {
             defCred = cred;
-            this.defCredUrlContext = new UrlContext(cred);
+            defCredUrlContext = new UrlContext(cred);
+            logger.info("Updated authentication header for default data lake");
         } else {
             defCred = null;
-            this.defCredUrlContext = null;
+            defCredUrlContext = null;
         }
         SSLContext sc = SSLContext.getInstance("TLS");
         if (unsecure) {
@@ -156,7 +159,30 @@ public class Http2Fetch {
             sc.init(null, null, null);
         }
         client = HttpClient.newBuilder().version(Version.HTTP_2).sslContext(sc).build();
-        locker = new ReentrantLock();
+        defLocker = new ReentrantLock();
+        cacheLocker = new ReentrantLock();
+    }
+
+    /**
+     * Creates an uninitialized fetcher
+     * 
+     * @param cred If not null then this object will be used as the credentials for
+     *             any request that does not override it.
+     * @throws NoSuchAlgorithmException underlying SSL support issue
+     * @throws KeyManagementException   underlying SSL support issues
+     */
+    public Http2Fetch(Credentials cred) throws KeyManagementException, NoSuchAlgorithmException {
+        this(cred, null, false);
+    }
+
+    /**
+     * Creates an uninitialized fetcher
+     * 
+     * @throws NoSuchAlgorithmException underlying SSL support issue
+     * @throws KeyManagementException   underlying SSL support issues
+     */
+    public Http2Fetch() throws KeyManagementException, NoSuchAlgorithmException {
+        this(null, null, false);
     }
 
     /**
@@ -174,44 +200,68 @@ public class Http2Fetch {
         getRequest("", ct);
     }
 
-    private synchronized Builder getRequest(String path, CredentialTuple ct)
-            throws Http2FetchException, URISyntaxException {
+    /**
+     * If you're planning to use this Http2Fetch object in a multi-thread
+     * application then you must initialize in advance its default credentials
+     * object.
+     * 
+     * @throws URISyntaxException  unsupported usage of this object
+     * @throws Http2FetchException unsupported usage of this object
+     */
+    public void init() throws Http2FetchException, URISyntaxException {
+        getRequest("", null);
+    }
+
+    private Builder getRequest(String path, CredentialTuple ct) throws Http2FetchException, URISyntaxException {
         if (ct == null && defCred == null) {
             if (defaultEntryPoint == null) {
                 throw new Http2FetchException("object does not have default entry point neither default credential");
             }
             return null;
         }
-        if (locker.tryLock()) {
-            try {
-                if (ct == null && defCred != null) {
-                    Map.Entry<String, String> credData = defCred.GetToken(null);
-                    if (credData != null) {
-                        defCredUrlContext.authHeader = "Bearer " + credData.getValue();
-                    }
-                }
-                if (ct != null) {
-                    UrlContext cacheEntry = urlContextCache.get(ct.dlid);
+        Builder reqBuilder = null;
+        if (ct != null) {
+            UrlContext cacheEntry = urlContextCache.get(ct.dlid);
+            if (cacheLocker.tryLock()) {
+                try {
                     if (cacheEntry == null) {
-                        urlContextCache.put(ct.dlid, new UrlContext(ct.cred));
+                        cacheEntry = new UrlContext(ct.cred);
+                        urlContextCache.put(ct.dlid, cacheEntry);
+                        logger.info("Updated authentication header for data lake " + ct.dlid);
                     } else {
-                        Map.Entry<String, String> credData = ct.cred.GetToken(null);
+                        Map.Entry<String, String> credData = ct.cred.GetToken(false);
                         if (credData != null) {
                             cacheEntry.authHeader = "Bearer " + credData.getValue();
+                            logger.info("Updated authentication header for data lake " + ct.dlid);
                         }
                     }
+                } finally {
+                    cacheLocker.unlock();
                 }
-            } finally {
-                locker.unlock();
             }
-        }
-        Builder reqBuilder;
-        if (ct == null) {
-            reqBuilder = HttpRequest.newBuilder(new URI("https://" + defaultEntryPoint + path));
-        } else {
-            UrlContext cacheEntry = urlContextCache.get(ct.dlid);
+            if (cacheEntry == null) {
+                throw new Http2FetchException("race condition: use init(cred) before entering into parallel mode");
+            }
             reqBuilder = HttpRequest.newBuilder(new URI("https://" + cacheEntry.entryPoint + path));
             reqBuilder.header("authorization", cacheEntry.authHeader);
+        }
+        if (ct == null && defCred != null) {
+            if (defLocker.tryLock()) {
+                try {
+                    Map.Entry<String, String> credData = defCred.GetToken(false);
+                    if (credData != null) {
+                        defCredUrlContext.authHeader = "Bearer " + credData.getValue();
+                        logger.info("Updated authentication header for default data lake");
+                    }
+                } finally {
+                    defLocker.unlock();
+                }
+            }
+            reqBuilder = HttpRequest.newBuilder(new URI("https://" + defCredUrlContext.entryPoint + path));
+            reqBuilder.header("authorization", defCredUrlContext.authHeader);
+        }
+        if (reqBuilder == null) {
+            reqBuilder = HttpRequest.newBuilder(new URI("https://" + defaultEntryPoint + path));
         }
         if (timeout != null)
             reqBuilder.timeout(timeout);
@@ -221,12 +271,17 @@ public class Http2Fetch {
     private CortexApiResult<JsonStructure> op(HttpRequest request) throws InterruptedException, IOException {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         logger.finer("HTTP2 response status code: " + response.statusCode());
-        logger.finer("HTTP2 response body: " + response.body());
+        String responseBody = response.body();
+        if (responseBody.equals("null")) {
+            logger.finer("HTTP2 response body is null");
+            return null;
+        }
+        logger.finer("HTTP2 response body: " + responseBody);
         try {
-            JsonStructure jsobj = Json.createReader(new StringReader(response.body())).read();
+            JsonStructure jsobj = Json.createReader(new StringReader(responseBody)).read();
             return new CortexApiResult<JsonStructure>(jsobj, response.statusCode());
         } catch (JsonParsingException e) {
-            logger.info("CORTEX response is not a valid JSON object: " + response.body());
+            logger.info("CORTEX response is not a valid JSON object: " + responseBody);
             return new CortexApiResult<JsonStructure>(null, response.statusCode());
         }
     }
@@ -234,8 +289,13 @@ public class Http2Fetch {
     private CompletableFuture<CortexApiResult<JsonStructure>> opAsync(HttpRequest request) {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
             logger.finer("HTTP2 response status code: " + response.statusCode());
-            logger.finer("HTTP2 response body: " + response.body());
-            JsonStructure jsobj = Json.createReader(new StringReader(response.body())).read();
+            String responseBody = response.body();
+            if (responseBody.equals("null")) {
+                logger.finer("HTTP2 response body is null");
+                return null;
+            }
+            logger.finer("HTTP2 response body: " + responseBody);
+            JsonStructure jsobj = Json.createReader(new StringReader(responseBody)).read();
             return new CortexApiResult<JsonStructure>(jsobj, response.statusCode());
         });
     }

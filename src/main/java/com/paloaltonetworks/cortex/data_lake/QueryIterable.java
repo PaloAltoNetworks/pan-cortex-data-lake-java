@@ -65,12 +65,13 @@ public class QueryIterable implements Iterable<JsonValue> {
      * @param cred     default credentails to be used
      * @return an Iterable object to navigate the query results.
      */
-    QueryIterable(QueryService qs, String sqlCommand, int pageSize, int delay, int retries, CredentialTuple cred) {
+    QueryIterable(QueryService qs, String sqlCommand, Integer pageSize, Integer delay, Integer retries,
+            CredentialTuple cred) {
         this.qs = qs;
         this.sqlCommand = sqlCommand;
-        this.pageSize = pageSize;
-        this.delay = delay;
-        this.retries = retries;
+        this.pageSize = (pageSize == null) ? DEFAULT_PAGE_SIZE : pageSize;
+        this.delay = (delay == null) ? DEFAULT_DELAY : delay;
+        this.retries = (retries == null) ? MAX_RETRIES : retries;
         this.cred = cred;
     }
 
@@ -91,12 +92,7 @@ public class QueryIterable implements Iterable<JsonValue> {
      * @return an Iterable object to navigate the query results.
      */
     QueryIterable(QueryService qs, String sqlCommand, CredentialTuple cred) {
-        this.qs = qs;
-        this.sqlCommand = sqlCommand;
-        this.pageSize = DEFAULT_PAGE_SIZE;
-        this.delay = DEFAULT_DELAY;
-        this.retries = MAX_RETRIES;
-        this.cred = cred;
+        this(qs, sqlCommand, null, null, null, cred);
     }
 
     private QueryJobResult settleJobResult(QueryJobResult pageResults) throws QueryServiceClientException {

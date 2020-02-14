@@ -95,7 +95,8 @@ public class QueryServiceClient extends QueryService {
      * @param cred       Optional credential tuple to override default one
      * @return an Iterable object to navigate the query results.
      */
-    public QueryIterable iterable(String sqlCommand, int pageSize, int delay, int retries, CredentialTuple cred) {
+    public QueryIterable iterable(String sqlCommand, Integer pageSize, Integer delay, Integer retries,
+            CredentialTuple cred) {
         if (sqlCommand == null) {
             logger.info("'sqlCommand' can't be null.");
             throw new IllegalArgumentException("'sqlCommand' can't be null.");
@@ -123,6 +124,24 @@ public class QueryServiceClient extends QueryService {
     }
 
     /**
+     * Constructs an Iterable object to navigate a Cortex API Query with default
+     * values.
+     * 
+     * Defaults are:
+     * <ul>
+     * <li>DEFAULT_PAGE_SIZE = 400</li>
+     * <li>MAX_RETRIES = 10</li>
+     * <li>DEFAULT_DELAY = 200</li>
+     * </ul>
+     * 
+     * @param sqlCommand the SQL command for this job.
+     * @return an Iterable object to navigate the query results.
+     */
+    public QueryIterable iterable(String sqlCommand) {
+        return new QueryIterable(this, sqlCommand, null);
+    }
+
+    /**
      * Constructs a stream object to allow a parallel processing of items produced
      * by a query
      * 
@@ -133,7 +152,8 @@ public class QueryServiceClient extends QueryService {
      * @param cred       Optional credential tuple to override default one
      * @return an object that implements the parallel Stream interface
      */
-    public Stream<JsonValue> stream(String sqlCommand, int pageSize, int delay, int retries, CredentialTuple cred) {
+    public Stream<JsonValue> stream(String sqlCommand, Integer pageSize, Integer delay, Integer retries,
+            CredentialTuple cred) {
         if (sqlCommand == null) {
             logger.info("'sqlCommand' can't be null.");
             throw new IllegalArgumentException("'sqlCommand' can't be null.");
@@ -162,5 +182,27 @@ public class QueryServiceClient extends QueryService {
             throw new IllegalArgumentException("'sqlCommand' can't be null.");
         }
         return StreamSupport.stream(iterable(sqlCommand, cred).spliterator(), true);
+    }
+
+    /**
+     * Constructs a stream object to allow a parallel processing of items produced
+     * by a query with defaults values:
+     * 
+     * Defaults are:
+     * <ul>
+     * <li>DEFAULT_PAGE_SIZE = 400</li>
+     * <li>MAX_RETRIES = 10</li>
+     * <li>DEFAULT_DELAY = 200</li>
+     * </ul>
+     * 
+     * @param sqlCommand the SQL command for this job.
+     * @return an object that implements the parallel Stream interface
+     */
+    public Stream<JsonValue> stream(String sqlCommand) {
+        if (sqlCommand == null) {
+            logger.info("'sqlCommand' can't be null.");
+            throw new IllegalArgumentException("'sqlCommand' can't be null.");
+        }
+        return StreamSupport.stream(iterable(sqlCommand, null).spliterator(), true);
     }
 }
