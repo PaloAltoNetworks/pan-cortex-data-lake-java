@@ -23,6 +23,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -81,7 +83,8 @@ public class QueryServiceClient extends QueryService {
      * @throws KeyManagementException   Issues with the local OS SSL Libraries.
      * @throws NoSuchAlgorithmException Issues with the local OS SSL Libraries.
      */
-    public QueryServiceClient(Credentials cred) throws KeyManagementException, NoSuchAlgorithmException {
+    public QueryServiceClient(Function<Boolean, Map.Entry<String, String>> cred)
+            throws KeyManagementException, NoSuchAlgorithmException {
         super(cred);
     }
 

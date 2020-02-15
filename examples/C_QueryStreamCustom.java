@@ -8,18 +8,18 @@
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 import com.paloaltonetworks.cortex.data_lake.Constants;
-import com.paloaltonetworks.cortex.data_lake.Credentials;
 import com.paloaltonetworks.cortex.data_lake.QueryServiceClient;
 
 public class C_QueryStreamCustom {
     private static final String accessToken = "eyJh...yx7Q";
     private static final String sqlCmd = "SELECT * FROM `<instance_id>.firewall.traffic` LIMIT 100";
-    private static final Credentials cred = new Credentials() {
+    private static final Function<Boolean, Map.Entry<String, String>> cred = new Function<Boolean, Map.Entry<String, String>>() {
 
         @Override
-        public Entry<String, String> GetToken(Boolean force) {
+        public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
                 return new Map.Entry<String, String>() {
 

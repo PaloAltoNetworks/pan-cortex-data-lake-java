@@ -28,7 +28,9 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -95,7 +97,8 @@ public class QueryService {
      * @throws KeyManagementException   Issues with the local OS SSL Libraries.
      * @throws NoSuchAlgorithmException Issues with the local OS SSL Libraries.
      */
-    public QueryService(Credentials cred) throws KeyManagementException, NoSuchAlgorithmException {
+    public QueryService(Function<Boolean, Map.Entry<String, String>> cred)
+            throws KeyManagementException, NoSuchAlgorithmException {
         this.client = new Http2Fetch(cred, null, false);
         defaultCred = null;
     }

@@ -14,7 +14,6 @@ import java.util.function.Function;
 
 import com.paloaltonetworks.cortex.data_lake.Constants;
 import com.paloaltonetworks.cortex.data_lake.CredentialTuple;
-import com.paloaltonetworks.cortex.data_lake.Credentials;
 import com.paloaltonetworks.cortex.data_lake.Http2Fetch;
 import com.paloaltonetworks.cortex.data_lake.QueryServiceClient;
 
@@ -22,33 +21,34 @@ public class E_QueryIteratorMultipleDataLake {
     private static final String accessToken1 = "eyJh...yx7Q";
     private static final String accessToken2 = "eyJh...4tgR";
     private static final String sqlCmd = "SELECT * FROM `<instance_id>.firewall.traffic` LIMIT 100";
-    private static final Function<String, Credentials> cred = (token) -> new Credentials() {
+    private static final Function<String, Function<Boolean, Map.Entry<String, String>>> cred = (
+            token) -> new Function<Boolean, Map.Entry<String, String>>() {
 
-        @Override
-        public Entry<String, String> GetToken(Boolean force) {
-            if (force != null && force) {
-                return new Map.Entry<String, String>() {
+                @Override
+                public Entry<String, String> apply(Boolean force) {
+                    if (force != null && force) {
+                        return new Map.Entry<String, String>() {
 
-                    @Override
-                    public String getKey() {
-                        return Constants.USFQDN;
-                    }
+                            @Override
+                            public String getKey() {
+                                return Constants.USFQDN;
+                            }
 
-                    @Override
-                    public String getValue() {
-                        return token;
-                    }
+                            @Override
+                            public String getValue() {
+                                return token;
+                            }
 
-                    @Override
-                    public String setValue(String value) {
+                            @Override
+                            public String setValue(String value) {
+                                return null;
+                            }
+                        };
+                    } else {
                         return null;
                     }
-                };
-            } else {
-                return null;
-            }
-        }
-    };
+                }
+            };
 
     public static void main(String[] args) throws Exception {
         /**

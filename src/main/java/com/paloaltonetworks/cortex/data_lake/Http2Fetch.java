@@ -41,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -59,8 +60,8 @@ public class Http2Fetch {
         String entryPoint;
         String authHeader;
 
-        UrlContext(Credentials cred) {
-            Map.Entry<String, String> credData = cred.GetToken(true);
+        UrlContext(Function<Boolean, Map.Entry<String, String>> cred) {
+            Map.Entry<String, String> credData = cred.apply(true);
             entryPoint = credData.getKey();
             authHeader = "Bearer " + credData.getValue();
         }
@@ -69,7 +70,7 @@ public class Http2Fetch {
     private final HttpClient client;
     private final Duration timeout;
     private final Map<String, UrlContext> urlContextCache;
-    private final Credentials defCred;
+    private final Function<Boolean, Map.Entry<String, String>> defCred;
     private final UrlContext defCredUrlContext;
     private final String defaultEntryPoint;
     private final Lock defLocker;
@@ -128,7 +129,7 @@ public class Http2Fetch {
      * @throws NoSuchAlgorithmException underlying SSL support issue
      * @throws KeyManagementException   underlying SSL support issues
      */
-    public Http2Fetch(Credentials cred, Duration timeout, boolean unsecure)
+    public Http2Fetch(Function<Boolean, Map.Entry<String, String>> cred, Duration timeout, boolean unsecure)
             throws NoSuchAlgorithmException, KeyManagementException {
         this.timeout = timeout;
         this.defaultEntryPoint = null;
@@ -171,7 +172,8 @@ public class Http2Fetch {
      * @throws NoSuchAlgorithmException underlying SSL support issue
      * @throws KeyManagementException   underlying SSL support issues
      */
-    public Http2Fetch(Credentials cred) throws KeyManagementException, NoSuchAlgorithmException {
+    public Http2Fetch(Function<Boolean, Map.Entry<String, String>> cred)
+            throws KeyManagementException, NoSuchAlgorithmException {
         this(cred, null, false);
     }
 
@@ -229,7 +231,7 @@ public class Http2Fetch {
                         urlContextCache.put(ct.dlid, cacheEntry);
                         logger.info("Updated authentication header for data lake " + ct.dlid);
                     } else {
-                        Map.Entry<String, String> credData = ct.cred.GetToken(false);
+                        Map.Entry<String, String> credData = ct.cred.apply(false);
                         if (credData != null) {
                             cacheEntry.authHeader = "Bearer " + credData.getValue();
                             logger.info("Updated authentication header for data lake " + ct.dlid);
@@ -248,7 +250,7 @@ public class Http2Fetch {
         if (ct == null && defCred != null) {
             if (defLocker.tryLock()) {
                 try {
-                    Map.Entry<String, String> credData = defCred.GetToken(false);
+                    Map.Entry<String, String> credData = defCred.apply(false);
                     if (credData != null) {
                         defCredUrlContext.authHeader = "Bearer " + credData.getValue();
                         logger.info("Updated authentication header for default data lake");

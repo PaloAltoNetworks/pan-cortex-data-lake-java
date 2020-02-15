@@ -18,6 +18,7 @@
 package com.paloaltonetworks.cortex.data_lake;
 
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Credentials context metadata
@@ -25,7 +26,7 @@ import java.util.Map;
 public class CredentialTuple {
     String dlid;
     String entryPoint;
-    Credentials cred;
+    Function<Boolean, Map.Entry<String, String>> cred;
 
     /**
      * Creates a credential metadata context
@@ -33,10 +34,10 @@ public class CredentialTuple {
      * @param dlid unique Data Lake identifier
      * @param cred Credentials object
      */
-    public CredentialTuple(String dlid, Credentials cred) {
+    public CredentialTuple(String dlid, Function<Boolean, Map.Entry<String, String>> cred) {
         this.dlid = dlid;
         this.cred = cred;
-        Map.Entry<String, String> kv = cred.GetToken(true);
+        Map.Entry<String, String> kv = cred.apply(true);
         entryPoint = kv.getKey();
     }
 }
