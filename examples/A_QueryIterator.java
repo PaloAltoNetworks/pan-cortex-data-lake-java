@@ -7,6 +7,7 @@
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.AbstractMap.SimpleEntry;
 
 import com.paloaltonetworks.cortex.data_lake.Constants;
 import com.paloaltonetworks.cortex.data_lake.QueryServiceClient;
@@ -19,23 +20,7 @@ public class A_QueryIterator {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new Map.Entry<String, String>() {
-
-                    @Override
-                    public String getKey() {
-                        return Constants.USFQDN;
-                    }
-
-                    @Override
-                    public String getValue() {
-                        return A_QueryIterator.accessToken;
-                    }
-
-                    @Override
-                    public String setValue(String value) {
-                        return null;
-                    }
-                };
+                return new SimpleEntry<String, String>(Constants.USFQDN, A_QueryIterator.accessToken);
             } else {
                 return null;
             }

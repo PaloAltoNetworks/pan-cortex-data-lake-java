@@ -6,6 +6,7 @@
 
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.function.Function;
 
 import com.paloaltonetworks.cortex.data_lake.Constants;
@@ -24,23 +25,7 @@ public class F_QueryLowLevelAPI {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new Map.Entry<String, String>() {
-
-                    @Override
-                    public String getKey() {
-                        return Constants.USFQDN;
-                    }
-
-                    @Override
-                    public String getValue() {
-                        return accessToken;
-                    }
-
-                    @Override
-                    public String setValue(String value) {
-                        return null;
-                    }
-                };
+                return new SimpleEntry<String, String>(Constants.USFQDN, F_QueryLowLevelAPI.accessToken);
             } else {
                 return null;
             }
