@@ -22,7 +22,7 @@ public class D_QueryIteratorParallel {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new SimpleEntry<String, String>(Constants.USFQDN, D_QueryIteratorParallel.accessToken);
+                return new SimpleEntry<String, String>(Constants.USFQDN, accessToken);
             } else {
                 return null;
             }

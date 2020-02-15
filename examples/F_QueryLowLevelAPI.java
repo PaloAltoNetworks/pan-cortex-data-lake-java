@@ -25,7 +25,7 @@ public class F_QueryLowLevelAPI {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new SimpleEntry<String, String>(Constants.USFQDN, F_QueryLowLevelAPI.accessToken);
+                return new SimpleEntry<String, String>(Constants.USFQDN, accessToken);
             } else {
                 return null;
             }

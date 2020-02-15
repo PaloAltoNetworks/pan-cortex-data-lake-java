@@ -20,7 +20,7 @@ public class A_QueryIterator {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new SimpleEntry<String, String>(Constants.USFQDN, A_QueryIterator.accessToken);
+                return new SimpleEntry<String, String>(Constants.USFQDN, accessToken);
             } else {
                 return null;
             }

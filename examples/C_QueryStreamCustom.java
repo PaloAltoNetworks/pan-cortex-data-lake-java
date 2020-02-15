@@ -22,7 +22,7 @@ public class C_QueryStreamCustom {
         @Override
         public Entry<String, String> apply(Boolean force) {
             if (force != null && force) {
-                return new SimpleEntry<String, String>(Constants.USFQDN, C_QueryStreamCustom.accessToken);
+                return new SimpleEntry<String, String>(Constants.USFQDN, accessToken);
             } else {
                 return null;
             }
