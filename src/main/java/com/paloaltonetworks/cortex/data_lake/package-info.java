@@ -60,14 +60,33 @@
  * and navigate through its results using the Iterable interface.
  * 
  * <pre>
- * var baseFqdn = "dev-cortex-global-01-mtls.paloaltonetworks-app.com";
- * var keystore = System.getProperty("cortex.clientcert");
- * var password = "".toCharArray();
- * var sqlCommand = "SELECT * from `2020001.firewall.traffic` LIMIT 1015";
- * 
- * var qsc = new QueryServiceClient(baseFqdn, keystore, password);
- * for (var item : qsc.iterable(sqlCommand))
- *     System.out.println(item);
+ * import java.util.Map; 
+ * import java.util.Map.Entry; 
+ * import java.util.AbstractMap.SimpleImmutableEntry; 
+ * import java.util.function.Function; 
+ *  
+ * import com.paloaltonetworks.cortex.data_lake.Constants; 
+ * import com.paloaltonetworks.cortex.data_lake.QueryServiceClient; 
+ *  
+ * public class StreamExample { 
+ *     private static final String accessToken = "eyJh...yx7Q"; 
+ *     private static final String sqlCmd = "SELECT * FROM `&lt;instance_id&gt;.firewall.traffic` LIMIT 100"; 
+ *     private static final Function&lt;Boolean, Map.Entry&lt;String, String&gt;&gt; cred = new Function&lt;Boolean, Map.Entry&lt;String, String&gt;&gt;() { 
+ *  
+ *         public Entry&lt;String, String&gt; apply(Boolean force) { 
+ *             if (force != null &amp;&amp; force) { 
+ *                 return new SimpleImmutableEntry&lt;String, String&gt;(Constants.USFQDN, accessToken); 
+ *             } else { 
+ *                 return null; 
+ *             } 
+ *         } 
+ *     }; 
+ *  
+ *     public static void main(String[] args) throws Exception { 
+ *         QueryServiceClient qsc = new QueryServiceClient(cred); 
+ *         qsc.stream(sqlCmd).forEach((item) -&gt; System.out.println(item)); 
+ *     } 
+ * } 
  * </pre>
  * 
  * In this case the developer is instantiating the {@code QueryServiceClient}
@@ -75,6 +94,11 @@
  * results. The {@code QueryServiceClient} takes care of everything (creating
  * the job, polling for it to be completed, paginating through the results and
  * deleting the job once all of them have been consumed).
+ * <p>
+ * A collection of compatible `Credentials` objects as well as building blocks
+ * to interface with Cortex hub OAuth2 authentication is available in the
+ * package <code>com.paloaltonetworks.cortex.hub</code> at <a
+ * href="https://github.com/xhoms/pan-cortex-hub-java">https://github.com/xhoms/pan-cortex-hub-java</a>
  * <p>
  * To access all these method individually you migh instantiate the
  * {@code QueryService} class instead. But, as they're exposed in the
