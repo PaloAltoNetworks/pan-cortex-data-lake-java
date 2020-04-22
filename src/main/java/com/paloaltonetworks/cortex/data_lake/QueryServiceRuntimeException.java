@@ -17,8 +17,7 @@
 
 package com.paloaltonetworks.cortex.data_lake;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.logging.Logger;
 
 import javax.json.JsonArray;
@@ -38,17 +37,17 @@ public class QueryServiceRuntimeException extends RuntimeException {
     /**
      * Cortex API error list
      */
-    public final List<QueryApiError> cortexApiError;
+    public final Collection<QueryApiError> cortexApiError;
     static final Logger logger = Logger.getLogger("com.paloaltonetworks.cortex.data_lake");
 
-    private QueryServiceRuntimeException(String message, int httpStatusCode, List<QueryApiError> cortexApiError) {
+    private QueryServiceRuntimeException(String message, int httpStatusCode, Collection<QueryApiError> cortexApiError) {
         super(message);
         this.httpStatusCode = httpStatusCode;
         this.cortexApiError = cortexApiError;
     }
 
-    static List<QueryApiError> parse(JsonStructure jsonResponse) throws QueryServiceParseRuntimeException {
-        JsonArray arrayResponse;
+    static Collection<QueryApiError> parse(JsonStructure jsonResponse) throws QueryServiceParseRuntimeException {
+        JsonArray arrayResponse = null;
         logger.finest("request to parse a List of CortexApiError");
         try {
             arrayResponse = jsonResponse.asJsonArray();
@@ -60,12 +59,18 @@ public class QueryServiceRuntimeException extends RuntimeException {
                 logger.info("Response is neither an Error Array nor an Error Object");
                 throw new QueryServiceParseRuntimeException("Response is neither an Error Array nor an Error Object");
             }
-            logger.finest("single object received. Will convert it int a single item array.");
-            List<QueryApiError> apiErrorList = new ArrayList<QueryApiError>(1);
-            apiErrorList.add(QueryApiError.parse(objectResponse));
-            return apiErrorList;
+            try {
+                arrayResponse = objectResponse.getJsonArray("errors");
+            } catch (ClassCastException e3) {
+                logger.info("'error' field in response is not an array");
+                throw new QueryServiceParseRuntimeException("'error' field in response is not an array");
+            }
         }
-        return new ArrayList<QueryApiError>(arrayResponse.getValuesAs(QueryApiError::parse));
+        if (arrayResponse == null) {
+            logger.finest("Response does not include an 'error' field");
+            throw new QueryServiceParseRuntimeException("Response does not include an 'error' field");
+        }
+        return QueryApiError.parse(arrayResponse);
     }
 
     /**

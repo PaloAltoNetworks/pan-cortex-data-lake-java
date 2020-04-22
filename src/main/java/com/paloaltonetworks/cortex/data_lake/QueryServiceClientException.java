@@ -17,14 +17,27 @@
 
 package com.paloaltonetworks.cortex.data_lake;
 
+import java.util.Collection;
+
 /**
  * Describes an issue building up the query result iterator data.
  */
 public class QueryServiceClientException extends Exception {
 
     private static final long serialVersionUID = 1L;
+    public QueryJobDetail.JobState state;
+    public String jobId;
+    public Collection<QueryApiError> errors;
 
-    QueryServiceClientException(String message) {
+    public QueryServiceClientException(String message, String jobId, QueryJobDetail.JobState state,
+            Collection<QueryApiError> errors) {
         super(message);
+        this.state = state;
+        this.jobId = jobId;
+        this.errors = errors;
+    }
+
+    public static QueryServiceClientException fromJobDetails(String message, QueryJobDetail jobDetail) {
+        return new QueryServiceClientException(message, jobDetail.jobId, jobDetail.state, jobDetail.errors);
     }
 }

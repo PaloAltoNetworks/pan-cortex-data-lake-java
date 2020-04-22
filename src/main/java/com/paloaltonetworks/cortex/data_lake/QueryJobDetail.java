@@ -17,7 +17,9 @@
 
 package com.paloaltonetworks.cortex.data_lake;
 
+import java.util.Collection;
 import java.util.logging.Logger;
+
 import javax.json.JsonObject;
 
 /**
@@ -184,9 +186,13 @@ public class QueryJobDetail {
      * {@link QueryJobDetail.Statistics job statistics}
      */
     public final Statistics statistics;
+    /**
+     * Collection of optional errors found in the Job Details
+     */
+    public final Collection<QueryApiError> errors;
 
     private QueryJobDetail(String jobId, JobState state, long submitTime, Long startTime, Long endTime,
-            Progress progress, QueryParams params, Statistics statistics) {
+            Progress progress, QueryParams params, Statistics statistics, Collection<QueryApiError> errors) {
         this.jobId = jobId;
         this.state = state;
         this.submitTime = submitTime;
@@ -195,6 +201,7 @@ public class QueryJobDetail {
         this.progress = progress;
         this.params = params;
         this.statistics = statistics;
+        this.errors = errors;
     }
 
     static QueryJobDetail parse(JsonObject jsonResponse) throws QueryServiceParseRuntimeException {
@@ -206,6 +213,7 @@ public class QueryJobDetail {
         Progress progress = null;
         QueryParams params = null;
         Statistics statistics = null;
+        Collection<QueryApiError> errors = null;
 
         logger.finest("request to parse a QueryJobDetail");
         try {
@@ -266,6 +274,11 @@ public class QueryJobDetail {
         } catch (Exception e) {
             logger.finest(String.format("'statistics' will keep being null due to: %s", e.getMessage()));
         }
-        return new QueryJobDetail(jobId, state, submitTime, startTime, endTime, progress, params, statistics);
+        try {
+            errors = QueryApiError.parse(jsonResponse.getJsonArray("errors"));
+        } catch (Exception e) {
+            logger.finest(String.format("'errors' will keep being null due to: %s", e.getMessage()));
+        }
+        return new QueryJobDetail(jobId, state, submitTime, startTime, endTime, progress, params, statistics, errors);
     }
 }

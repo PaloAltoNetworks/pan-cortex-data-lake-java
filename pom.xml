@@ -6,7 +6,7 @@
 
   <groupId>com.paloaltonetworks</groupId>
   <artifactId>cortex.data-lake</artifactId>
-  <version>0.1</version>
+  <version>0.2</version>
 
   <name>pan-cortex-data-lake</name>
   <!-- FIXME change it to the project's website -->
