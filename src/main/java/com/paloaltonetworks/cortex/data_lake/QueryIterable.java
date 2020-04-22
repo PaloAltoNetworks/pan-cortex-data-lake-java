@@ -25,6 +25,7 @@ import java.util.Spliterator;
 import java.util.UUID;
 import java.util.logging.Logger;
 import javax.json.JsonValue;
+
 import com.paloaltonetworks.cortex.data_lake.QueryJobDetail.JobState;
 
 /**
@@ -99,7 +100,7 @@ public class QueryIterable implements Iterable<JsonValue> {
         size = pageResults.rowsInJob;
         if (pageResults.page.result.data == null) {
             logger.info(errMsg1);
-            iteratorException = new QueryServiceClientException(errMsg1);
+            iteratorException = new QueryServiceClientException(errMsg1, jobId, null, null);
             throw (QueryServiceClientException) iteratorException;
         }
         return pageResults;
@@ -127,22 +128,30 @@ public class QueryIterable implements Iterable<JsonValue> {
         }
         jobId = qs.createJob(UUID.randomUUID().toString(),
                 new QueryParams(sqlCommand, null, null, null, null, pageSize), this.cred).jobId;
-        JobState state = qs.getJobStatus(jobId, this.cred).state;
+        QueryJobDetail jobDetail = qs.getJobStatus(jobId, this.cred);
+        JobState state = jobDetail.state;
         int attempts = 0;
         while ((state == JobState.PENDING || state == JobState.RUNNING) && attempts++ < retries) {
             Thread.sleep(delay);
-            state = qs.getJobStatus(jobId, this.cred).state;
+            jobDetail = qs.getJobStatus(jobId, this.cred);
+            state = jobDetail.state;
         }
         if (attempts >= retries) {
             String msg = String.format("JobId %s still in status %s after %s attempts", jobId, state, attempts);
             logger.info(msg);
-            iteratorException = new QueryServiceClientException(msg);
+            iteratorException = new QueryServiceClientException(msg, jobId, state, null);
             throw (QueryServiceClientException) iteratorException;
         }
         if (state != JobState.DONE) {
             String msg = String.format("JobId %s failed with status %s", jobId, state);
+            if (jobDetail.errors != null) {
+                msg = msg + "\nErrors:";
+                for (QueryApiError item : jobDetail.errors) {
+                    msg = String.format("%s\n%s", msg, item.asString());
+                }
+            }
             logger.info(msg);
-            iteratorException = new QueryServiceClientException(msg);
+            iteratorException = QueryServiceClientException.fromJobDetails(msg, jobDetail);
             throw (QueryServiceClientException) iteratorException;
         }
         return settleJobResult(loadPage(null));
@@ -188,6 +197,18 @@ public class QueryIterable implements Iterable<JsonValue> {
                     iteratorPreLoad();
                 } catch (QueryServiceClientException e) {
                     endTraker();
+                    logger.info("Failed preLoad() due to QueryServiceClientException");
+                    return false;
+                } catch (QueryServiceException e) {
+                    if (e.queryApiError != null) {
+                        String msg = "Failed preLoad() due to:";
+                        for (QueryApiError item : e.queryApiError) {
+                            msg = String.format("%s\n%s", msg, item.asString());
+                        }
+                        logger.info(msg);
+                    } else {
+                        logger.info("Failed preLoad() due to QueryServiceException");
+                    }
                     return false;
                 } catch (Exception e) {
                     iteratorException = e;

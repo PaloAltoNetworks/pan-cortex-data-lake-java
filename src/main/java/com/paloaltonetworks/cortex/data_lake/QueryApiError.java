@@ -17,7 +17,13 @@
 
 package com.paloaltonetworks.cortex.data_lake;
 
+import javax.json.JsonArray;
+import javax.json.JsonNumber;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.logging.Logger;
 
 /**
@@ -28,7 +34,7 @@ public class QueryApiError {
      * Error code. Typically this is the error code seen in the first element of the
      * errors array.
      */
-    public final int errorCode;
+    public final Integer errorCode;
     /**
      * Textual description of the error.
      */
@@ -39,30 +45,56 @@ public class QueryApiError {
     public final String context;
     private static Logger logger = Logger.getLogger("com.paloaltonetworks.cortex.data_lake");
 
-    private QueryApiError(int errorCode, String message, String context) {
+    private QueryApiError(Integer errorCode, String message, String context) {
         this.errorCode = errorCode;
         this.message = message;
         this.context = context;
     }
 
     static QueryApiError parse(JsonObject jsonResponse) throws QueryServiceParseRuntimeException {
-        logger.finest("request to parse a Query API Error");
+        logger.finest("request to parse a Query API Error Item");
         if (jsonResponse == null) {
             logger.info("Query API error JSON object is null.");
             throw new QueryServiceParseRuntimeException("response can't be null");
         }
-        Integer errorCode;
+        Integer errorCode = null;
         String message = jsonResponse.getString("message", null);
         logger.finest("Query API Error message: " + message);
         String context = jsonResponse.getString("context", null);
         logger.finest("Query API Error context: " + context);
         try {
-            errorCode = jsonResponse.getJsonNumber("errorCode").intValueExact();
-            logger.finest("Query API Error errorCode: " + String.valueOf(errorCode));
+            JsonNumber errorCodeNum = jsonResponse.getJsonNumber("errorCode");
+            if (errorCodeNum != null) {
+                errorCode = errorCodeNum.intValueExact();
+                logger.finest("Query API Error errorCode: " + String.valueOf(errorCode));
+            }
         } catch (Exception e) {
-            logger.info("Query API error JSON errorCode is either null or not an integer.");
-            throw new QueryServiceParseRuntimeException("'errorCode' mandatory field is either missing or invalid");
+            logger.info("Query API error JSON errorCode is not an integer.");
+            throw new QueryServiceParseRuntimeException("'errorCode' field is invalid");
         }
         return new QueryApiError(errorCode, message, context);
+    }
+
+    static Collection<QueryApiError> parse(JsonArray jsonResponse) throws QueryServiceParseRuntimeException {
+        logger.finest("request to parse a Query API Error Collection");
+        if (jsonResponse == null) {
+            logger.info("Query API error JSON object is null.");
+            throw new QueryServiceParseRuntimeException("response can't be null");
+        }
+        Collection<QueryApiError> errorItems = new ArrayList<QueryApiError>(jsonResponse.size());
+        for (JsonValue item : jsonResponse) {
+            try {
+                JsonObject errorItem = item.asJsonObject();
+                errorItems.add(QueryApiError.parse(errorItem));
+            } catch (Exception e) {
+                logger.info("Query API error JSON error item is not an object or can't be parsed");
+                throw new QueryServiceParseRuntimeException("error item is invalid");
+            }
+        }
+        return errorItems;
+    }
+
+    String asString() {
+        return String.format("ErrorCode: %d, Message: %s, Context: %s", errorCode, message, context);
     }
 }
